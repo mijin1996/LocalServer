@@ -1,0 +1,36 @@
+# ===== Visual Studio 공통 =====
+.vs/
+.vscode/
+*.user
+*.suo
+*.slnx.sqlite
+
+# ===== .NET (C#) 빌드 결과물 =====
+[Bb]in/
+[Oo]bj/
+
+# ===== C++ 빌드 결과물 =====
+x64/
+x86/
+Debug/
+Release/
+*.ipch
+*.VC.db
+
+# ===== 유니티 (MonsterDex) =====
+[Ll]ibrary/
+[Tt]emp/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Bb]uild/
+[Bb]uilds/
+*.csproj.user
+MonsterDex/*.csproj
+MonsterDex/*.slnx
+
+# ===== 서버 DB (실행하면 monsters.json으로 자동 생성) =====
+GameDataServer/Data/game.db
+
+# ===== 내려받은 SQLite 도구 =====
+DB.Browser.for.SQLite-*/
+*.exe
