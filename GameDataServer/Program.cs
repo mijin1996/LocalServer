@@ -1,7 +1,7 @@
 using System.Text.Json;        // 씨앗 데이터(Data/monsters.json)를 읽을 때만 쓴다
 using Microsoft.Data.Sqlite;   // ← 추가: SQLite 데이터베이스를 여는 도구
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args); //
 var app = builder.Build();
 
 // ── 2회차. DB 파일 준비 ────────────────────────────────────────────────
@@ -88,6 +88,104 @@ app.MapGet("/monsters/{id:int}", (int id) =>
         ? Results.NotFound(new { error = $"id {id} 몬스터가 없습니다." })
         : Results.Ok(found);
 });*/
+
+// ── 테스트용 1: 일부러 느린 서버 (기본 3초). 04 파트에서 기다리는 동안 Unity가 멈추는지 본다 ──
+app.MapGet("/monsters/slow", async (int ms = 3000) =>
+{
+    await Task.Delay(ms);   // ms 밀리초 기다린다. ?ms=8000처럼 바꿀 수 있다
+    return new { monsters = LoadAllMonsters(connectionString) };
+});
+
+// ── 테스트용 2: 일부러 큰 데이터 (기본 20,000마리). 04 파트에서 큰 JSON을 받을 때 걸리는 시간을 본다 ──
+app.MapGet("/monsters/big", (int count = 20000) =>
+{
+    var monsters = LoadAllMonsters(connectionString);
+    var big = new List<Monster>(count);
+    for (int i = 1; i <= count; i++)
+    {
+        var src = monsters[(i - 1) % monsters.Count];   // 다섯 마리를 돌려 가며 복제한다
+        big.Add(new Monster { Id = i, Name = $"{src.Name} #{i}", Hp = src.Hp, Attack = src.Attack, Speed = src.Speed });
+    }
+    return new { monsters = big };
+});
+
+app.MapGet("/monsters/{id:int}", (int id) =>
+{
+    using var conn = new SqliteConnection(connectionString);
+    conn.Open();
+    var cmd = conn.CreateCommand();
+    cmd.CommandText = "SELECT id, name, hp, attack, speed FROM monsters WHERE id = $id";
+    cmd.Parameters.AddWithValue("$id", id);   // 값은 글자로 이어 붙이지 않고 파라미터로 넘긴다
+    using var reader = cmd.ExecuteReader();
+    var found = ReadMonsters(reader);
+    return found.Count == 0
+        ? Results.NotFound(new { error = $"id {id} 몬스터가 없습니다." })
+        : Results.Ok(found[0]);
+});
+
+
+// ── 2회차. 몬스터 추가 — POST는 "받아라". 본문의 JSON이 Monster로 들어온다 ──
+app.MapPost("/monsters", (Monster m) =>
+{
+    if (string.IsNullOrWhiteSpace(m.Name))
+        return Results.BadRequest(new { error = "name은 비어 있으면 안 됩니다." });
+
+    using var conn = new SqliteConnection(connectionString);
+    conn.Open();
+    var cmd = conn.CreateCommand();
+    cmd.CommandText = """
+        INSERT INTO monsters (name, hp, attack, speed) VALUES ($name, $hp, $attack, $speed);
+        SELECT last_insert_rowid();
+        """;
+    cmd.Parameters.AddWithValue("$name", m.Name);
+    cmd.Parameters.AddWithValue("$hp", m.Hp);
+    cmd.Parameters.AddWithValue("$attack", m.Attack);
+    cmd.Parameters.AddWithValue("$speed", m.Speed);
+    m.Id = (int)(long)cmd.ExecuteScalar()!;   // DB가 붙여 준 새 id
+
+    return Results.Created($"/monsters/{m.Id}", m);   // 201 Created + 새 몬스터
+});
+
+
+// ── 2회차. 몬스터 고치기 — PUT은 "이걸로 바꿔라". 본문의 JSON으로 그 id의 줄을 통째로 바꾼다 ──
+app.MapPut("/monsters/{id:int}", (int id, Monster m) =>
+{
+    if (string.IsNullOrWhiteSpace(m.Name))
+        return Results.BadRequest(new { error = "name은 비어 있으면 안 됩니다." });
+
+    using var conn = new SqliteConnection(connectionString);
+    conn.Open();
+    var cmd = conn.CreateCommand();
+    cmd.CommandText = "UPDATE monsters SET name = $name, hp = $hp, attack = $attack, speed = $speed WHERE id = $id";
+    cmd.Parameters.AddWithValue("$name", m.Name);
+    cmd.Parameters.AddWithValue("$hp", m.Hp);
+    cmd.Parameters.AddWithValue("$attack", m.Attack);
+    cmd.Parameters.AddWithValue("$speed", m.Speed);
+    cmd.Parameters.AddWithValue("$id", id);
+    int changed = cmd.ExecuteNonQuery();   // 바뀐 줄 수. 그 id가 없으면 0
+
+    if (changed == 0)
+        return Results.NotFound(new { error = $"id {id} 몬스터가 없습니다." });
+
+    m.Id = id;                 // 본문의 id는 무시하고 주소의 id를 쓴다
+    return Results.Ok(m);      // 200 OK + 바뀐 몬스터
+});
+
+
+// ── 2회차. 몬스터 삭제 — DELETE는 "지워라". 본문은 없고 주소의 id만 쓴다 ──
+app.MapDelete("/monsters/{id:int}", (int id) =>
+{
+    using var conn = new SqliteConnection(connectionString);
+    conn.Open();
+    var cmd = conn.CreateCommand();
+    cmd.CommandText = "DELETE FROM monsters WHERE id = $id";
+    cmd.Parameters.AddWithValue("$id", id);
+    int deleted = cmd.ExecuteNonQuery();   // 지운 줄 수
+
+    return deleted == 0
+        ? Results.NotFound(new { error = $"id {id} 몬스터가 없습니다." })
+        : Results.NoContent();             // 204 No Content. 돌려줄 본문이 없다
+});
 
 app.Run("http://localhost:5000");
 

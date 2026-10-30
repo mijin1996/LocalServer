@@ -26,32 +26,14 @@ namespace AsyncBreakfast
             Task<Egg> eggsTask = FryEggsAsync(2);
             Task<Bacon> baconTask = FryBaconAsync(3);
             Task<Toast> toastTask = MakeToastWithButterAndJamAsync(2);
-            Task<HashBrown> 
+            Task<HashBrown> hashBrownTask = FryHashBrownsAsync(2);
 
-
-            var breakfastTasks = new List<Task> { eggsTask, baconTask, toastTask, HashBrownTask };
-            while (breakfastTasks.Count > 0)
-            {
-                Task finishedTask = await Task.WhenAny(breakfastTasks);   // 셋 중 먼저 끝난 하나
-                if (finishedTask == eggsTask)
-                {
-                    Console.WriteLine("달걀 준비 완료");
-                }
-                else if (finishedTask == baconTask)
-                {
-                    Console.WriteLine("베이컨 준비 완료");
-                }
-                else if (finishedTask == toastTask)
-                {
-                    Console.WriteLine("토스트 준비 완료");
-                }
-                else if (finishedTask == HashBrownTask)
-                {
-                    Console.WriteLine("해쉬브라운 준비 완료");
-                }
-                await finishedTask;                  // 결과를 꺼내고, 실패했으면 여기서 예외가 난다
-                breakfastTasks.Remove(finishedTask);
-            }
+            var breakfastTasks = new List<Task> { eggsTask, baconTask, toastTask, hashBrownTask };
+            await Task.WhenAll(eggsTask, baconTask, toastTask, hashBrownTask);
+            Console.WriteLine("달걀 준비 완료");
+            Console.WriteLine("베이컨 준비 완료");
+            Console.WriteLine("토스트 준비 완료");
+            Console.WriteLine("해시브라운 준비 완료");
 
             Juice oj = PourOJ();
             Console.WriteLine("주스 준비 완료");
@@ -65,6 +47,22 @@ namespace AsyncBreakfast
             ApplyJam(toast);
 
             return toast;
+        }
+
+        private static async Task<HashBrown> FryHashBrownsAsync(int patties)
+        {
+            Console.WriteLine($"해시브라운 {patties}장을 팬에 올린다");
+            Console.WriteLine("해시브라운 한 면을 굽는다...");
+            await Task.Delay(2000);
+            for (int pattie = 0; pattie < patties; pattie++)
+            {
+                Console.WriteLine("해시브라운을 뒤집는다");
+            }
+            Console.WriteLine("해시브라운을 다른 면을 굽는다...");
+            await Task.Delay(2000);
+            Console.WriteLine("해시브라운을 접시에 담는다");
+
+            return new HashBrown();
         }
 
         private static Juice PourOJ()
@@ -123,27 +121,11 @@ namespace AsyncBreakfast
 
             return new Egg();
         }
-        private static async Task<HashBrown> FryHashBrownsAsync(int patties)
-        {
-            Console.WriteLine($"해쉬브라운 {patties}를 후라이팬에 올린다.");
-            await Task.Delay(2000);
-            for (int patty = 0; patty > patties; patty++)
-            {
-                Console.WriteLine("해쉬브라운 뒤집는다");
-                
-            }
-            await Task.Delay(2000);
-            Console.WriteLine("해쉬브라운을 접시에 담는다");
-
-            return new HashBrown();
-        }
 
         private static Coffee PourCoffee()
         {
             Console.WriteLine("커피를 따른다");
             return new Coffee();
         }
-
-
     }
 }
