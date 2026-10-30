@@ -8,8 +8,8 @@ Builds/
 MemoryCaptures/
 
 # Unity가 자동으로 만드는 프로젝트 파일 (루트, MonsterDex)
-*.csproj
-*.sln
+/*.csproj
+/*.sln
 MonsterDex/*.csproj
 MonsterDex/*.sln
 
