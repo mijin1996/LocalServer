@@ -8,8 +8,8 @@ Builds/
 MemoryCaptures/
 
 # Unity가 자동으로 만드는 프로젝트 파일 (루트, MonsterDex)
-/*.csproj
-/*.sln
+*.csproj
+*.sln
 MonsterDex/*.csproj
 MonsterDex/*.sln
 
@@ -20,8 +20,16 @@ obj/
 *.user
 *.suo
 
-# SQLite 도구
+# SQLite 도구, 데이터베이스 파일 — 내 PC에서 만들어지는 데이터라 저장소에 올리지 않는다
 sqlite-tools-win-x64-*/
+DB.Browser.for.SQLite-*/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # 비밀 정보
 .env
+
+# app의 경로 제외
+app/
